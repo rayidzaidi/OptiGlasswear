@@ -1,0 +1,23 @@
+{
+  "name": "OPTIGLASSWEAR",
+  "short_name": "OptiGlass",
+  "description": "Smart Wearable Vision & Speech Assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#edf3fb",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OPTIGLASSWEAR — Smart Wearable Glasses AI Console</title>
+    <!-- Favicon & PWA App Manifest -->
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/logo.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    <!-- Fonts & Lucide Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            /* Claymorphism Palette with Rich Pastel Gradients */
+            --bg-canvas: #edf3fb;
+            --clay-bg: #f5f8fd;
+            --clay-surface: #f9fbfe;
+            --clay-card-inner: #ffffff;
+            
+            --text-title: #0f172a;
+            --text-body: #334155;
+            --text-muted: #64748b;
+            --text-subtle: #94a3b8;
+
+            /* Dual Clay 3D Shadows */
+            --clay-shadow: 
+                8px 12px 24px rgba(150, 172, 202, 0.42),
+                -8px -8px 20px rgba(255, 255, 255, 0.95),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.9),
+                inset -2px -2px 4px rgba(150, 172, 202, 0.22);
+
+            --clay-shadow-sm: 
+                4px 6px 14px rgba(150, 172, 202, 0.35),
+                -4px -4px 12px rgba(255, 255, 255, 0.9),
+                inset 1px 1px 2px rgba(255, 255, 255, 0.9),
+                inset -1px -1px 2px rgba(150, 172, 202, 0.18);
+
+            --clay-shadow-inset: 
+                inset 3px 3px 8px rgba(150, 172, 202, 0.38),
+                inset -3px -3px 8px rgba(255, 255, 255, 0.95);
+
+            /* Harmonious Gradient Accents */
+            --grad-primary: linear-gradient(135deg, #4f46e5, #3b82f6);
+            --grad-emerald: linear-gradient(135deg, #059669, #10b981);
+            --grad-violet: linear-gradient(135deg, #7c3aed, #a855f7);
+            --grad-amber: linear-gradient(135deg, #d97706, #f59e0b);
+            --grad-rose: linear-gradient(135deg, #e11d48, #f43f5e);
+            --grad-cyan: linear-gradient(135deg, #0284c7, #06b6d4);
+
+            --radius-bento: 24px;
+            --radius-bezel: 16px;
+            --radius-pill: 9999px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            background: var(--bg-canvas);
+            color: var(--text-title);
+            min-height: 100vh;
+            padding: 16px 20px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(199, 210, 254, 0.7) 0px, transparent 50%),
+                radial-gradient(at 100% 5%, rgba(167, 243, 208, 0.6) 0px, transparent 45%),
+                radial-gradient(at 90% 90%, rgba(254, 215, 170, 0.5) 0px, transparent 50%),
+                radial-gradient(at 10% 95%, rgba(221, 214, 254, 0.6) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1440px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* --- Header Bento Bar --- */
+        .bento-header {
+            background: linear-gradient(145deg, #ffffff, #f3f7fd);
+            box-shadow: var(--clay-shadow);
+            border-radius: var(--radius-bento);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.75);
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* 3D App Logo */
+        .brand-logo-clay {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 
+                4px 6px 14px rgba(99, 102, 241, 0.35),
+                inset 1px 1px 2px rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .brand-logo-clay:hover {
+            transform: scale(1.06) rotate(3deg);
+        }
+
+        .brand-logo-clay img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .brand-info h1 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.4px;
+            background: linear-gradient(135deg, #3730a3, #2563eb 60%, #059669);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-info p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .header-telemetry-strip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tele-pill {
+            background: linear-gradient(145deg, #ffffff, #f8fafd);
+            box-shadow: var(--clay-shadow-sm);
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-body);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .tele-pill b {
+            font-family: 'JetBrains Mono', monospace;
+            color: #2563eb;
+        }
+
+        .live-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .live-pulse.offline {
+            background: #f43f5e;
+            box-shadow: 0 0 10px #f43f5e;
+        }
+
+        /* --- Bento Main Grid (3 Balanced Columns) --- */
+        .bento-main-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.95fr 0.95fr;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .bento-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Bento Tile Base */
+        .bento-tile {
+            background: var(--clay-bg);
+            box-shadow: var(--clay-shadow);
+            border-radius: var(--radius-bento);
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Ambient Pastel Bento Tile Gradients */
+        .tile-gradient-cyan {
+            background: linear-gradient(145deg, #f7faff, #edf5fd);
+        }
+        .tile-gradient-violet {
+            background: linear-gradient(145deg, #faf7ff, #f3edf9);
+        }
+        .tile-gradient-emerald {
+            background: linear-gradient(145deg, #f7fdfa, #ecf8f3);
+        }
+        .tile-gradient-amber {
+            background: linear-gradient(145deg, #fffdf8, #fbf6ec);
+        }
+
+        .tile-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tile-caption {
+            font-size: 0.86rem;
+            font-weight: 800;
+            color: var(--text-title);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.2px;
+        }
+
+        /* 1. Camera Stage */
+        .camera-screen-bezel {
+            position: relative;
+            background: #ffffff;
+            border-radius: var(--radius-bezel);
+            padding: 6px;
+            box-shadow: var(--clay-shadow-inset);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            max-height: 310px;
+        }
+
+        #streamCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            border-radius: 12px;
+            background: #e2e8f0;
+        }
+
+        .camera-overlay-badge {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(8px);
+            padding: 4px 11px;
+            border-radius: var(--radius-pill);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            z-index: 2;
+        }
+
+        .camera-overlay-badge .red-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: blink 1.2s infinite ease-in-out;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.8); }
+        }
+
+        .camera-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .scene-tags-flow {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .clay-tag {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            box-shadow: var(--clay-shadow-sm);
+            padding: 4px 12px;
+            border-radius: var(--radius-pill);
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: #065f46;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.85); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 3D Clay Gradient Buttons */
+        .clay-btn {
+            background: linear-gradient(145deg, #ffffff, #e9f0f8);
+            box-shadow: var(--clay-shadow-sm);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: var(--radius-pill);
+            padding: 8px 18px;
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-title);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            user-select: none;
+        }
+
+        .clay-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                6px 10px 18px rgba(150, 172, 202, 0.45),
+                -6px -6px 16px rgba(255, 255, 255, 1);
+        }
+
+        .clay-btn:active {
+            transform: translateY(1px);
+            box-shadow: var(--clay-shadow-inset);
+        }
+
+        .clay-btn.voice-on {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            border: none;
+            box-shadow: 
+                4px 6px 14px rgba(16, 185, 129, 0.45),
+                inset 1px 1px 2px rgba(255, 255, 255, 0.6);
+        }
+
+        .clay-btn-sm {
+            padding: 4px 10px;
+            font-size: 0.74rem;
+        }
+
+        .clay-btn-call {
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            color: #0369a1;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .clay-btn-call:hover {
+            background: linear-gradient(135deg, #bae6fd, #7dd3fc);
+        }
+
+        .clay-btn-sos {
+            background: linear-gradient(135deg, #ffe4e6, #fecdd3);
+            color: #be123c;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+        .clay-btn-sos:hover {
+            background: linear-gradient(135deg, #fecdd3, #fda4af);
+        }
+
+        /* Emergency Trigger Tile */
+        .emergency-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .alert-toast-bar {
+            background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+            border: 1px solid #fecdd3;
+            border-radius: 12px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: #be123c;
+            display: none;
+            animation: popIn 0.2s ease;
+        }
+
+        /* 2. Voice Synthesizer & Speech Settings */
+        .speaker-box-compact {
+            background: linear-gradient(145deg, #ffffff, #f9f7ff);
+            border-radius: var(--radius-bezel);
+            padding: 12px 14px;
+            box-shadow: var(--clay-shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(237, 233, 254, 0.6);
+        }
+
+        .clay-waveform {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 26px;
+        }
+
+        .wave-bar {
+            width: 4px;
+            height: 7px;
+            background: #cbd5e1;
+            border-radius: var(--radius-pill);
+            transition: all 0.2s ease;
+        }
+
+        .clay-waveform.speaking .wave-bar {
+            background: linear-gradient(to top, #7c3aed, #06b6d4);
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.4);
+            animation: waveBounce 0.7s infinite alternate ease-in-out;
+        }
+
+        .clay-waveform.speaking .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+        .clay-waveform.speaking .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+        .clay-waveform.speaking .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+        .clay-waveform.speaking .wave-bar:nth-child(5) { animation-delay: 0.2s; }
+
+        @keyframes waveBounce {
+            0% { height: 6px; }
+            100% { height: 24px; }
+        }
+
+        .speaker-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow: hidden;
+        }
+
+        .speaker-state-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .speaker-active-word {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-title);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Voice Tuning Controls */
+        .voice-controls-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .control-input-group {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 8px 12px;
+            box-shadow: var(--clay-shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border: 1px solid rgba(241, 245, 249, 0.8);
+        }
+
+        .control-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .control-input-group select,
+        .control-input-group input[type="range"] {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-body);
+            outline: none;
+        }
+
+        /* Speech Queue Flow */
+        .queue-scroll-area {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 140px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .queue-chip-item {
+            background: #ffffff;
+            box-shadow: var(--clay-shadow-sm);
+            border-radius: 12px;
+            padding: 7px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            border: 1px solid rgba(226, 232, 240, 0.6);
+            animation: popIn 0.2s ease;
+        }
+
+        .queue-rank-badge {
+            background: linear-gradient(135deg, #dbeafe, #ede9fe);
+            color: #4338ca;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: var(--radius-pill);
+        }
+
+        .empty-hint {
+            text-align: center;
+            color: var(--text-subtle);
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 16px 0;
+            font-style: italic;
+        }
+
+        /* 3. Analytics & Telemetry */
+        .telemetry-compact-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .mini-stat-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 8px 10px;
+            box-shadow: var(--clay-shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mini-stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+        .mini-stat-card:nth-child(1)::before { background: var(--grad-cyan); }
+        .mini-stat-card:nth-child(2)::before { background: var(--grad-emerald); }
+        .mini-stat-card:nth-child(3)::before { background: var(--grad-violet); }
+        .mini-stat-card:nth-child(4)::before { background: var(--grad-amber); }
+
+        .stat-name {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .stat-value-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        /* Object Frequency Breakdown */
+        .frequency-bars-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 130px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .freq-row {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .freq-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: var(--text-body);
+        }
+
+        .freq-bar-bg {
+            background: #e2e8f0;
+            height: 6px;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .freq-bar-fill {
+            background: linear-gradient(90deg, #6366f1, #3b82f6 50%, #10b981);
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.3s ease;
+        }
+
+        /* Snapshot Reel Gallery */
+        .snapshot-reel {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .snapshot-card {
+            flex: 0 0 85px;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 4px;
+            box-shadow: var(--clay-shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+            border: 1px solid rgba(226, 232, 240, 0.6);
+        }
+
+        .snapshot-card:hover {
+            transform: scale(1.05);
+        }
+
+        .snapshot-thumb {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #cbd5e1;
+        }
+
+        .snapshot-time {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* Activity Log */
+        .activity-scroll-area {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 110px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            padding-right: 2px;
+        }
+
+        .activity-entry-row {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-muted);
+            padding: 3px 4px;
+            border-bottom: 1px dashed rgba(160, 178, 203, 0.3);
+        }
+
+        .activity-entry-name {
+            color: var(--text-body);
+            font-weight: 600;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 172, 202, 0.4);
+            border-radius: 4px;
+        }
+
+        /* --- Tablet & Mobile Responsiveness --- */
+        @media (max-width: 1100px) {
+            .bento-main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .bento-column:first-child {
+                grid-column: span 2;
+            }
+            .camera-screen-bezel {
+                max-height: 340px;
+            }
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 10px 8px;
+            }
+            .bento-main-grid {
+                grid-template-columns: 1fr;
+            }
+            .bento-column:first-child {
+                grid-column: span 1;
+            }
+            .camera-screen-bezel {
+                max-height: 240px;
+            }
+            .telemetry-compact-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .voice-controls-row,
+            .emergency-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <!-- Top Bento Navigation Bar -->
+    <header class="bento-header">
+        <div class="brand-section">
+            <div class="brand-logo-clay" title="OPTIGLASSWEAR">
+                <img src="/logo.png" alt="OPTIGLASSWEAR Logo" />
+            </div>
+            <div class="brand-info">
+                <h1>OPTIGLASSWEAR</h1>
+                <p>Smart Wearable Vision & Speech Assistant</p>
+            </div>
+        </div>
+
+        <div class="header-telemetry-strip">
+            <div class="tele-pill">
+                <i data-lucide="timer" style="width: 14px; height: 14px; color: #7c3aed;"></i>
+                <span>Uptime:</span>
+                <b id="uptimeDisplay">00:00:00</b>
+            </div>
+            <div class="tele-pill">
+                <i data-lucide="wifi" style="width: 14px; height: 14px; color: #2563eb;"></i>
+                <span>Ping:</span>
+                <b id="pingDisplay">-- ms</b>
+            </div>
+            <div class="tele-pill">
+                <i data-lucide="arrow-down" style="width: 14px; height: 14px; color: #10b981;"></i>
+                <span>Traffic:</span>
+                <b id="trafficDisplay">0.0 MB</b>
+            </div>
+            <div class="tele-pill">
+                <div class="live-pulse" id="statusPulse"></div>
+                <span id="statusText">ONLINE</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main 3-Column Bento Grid -->
+    <main class="bento-main-grid">
+        <!-- COLUMN 1: Camera Stage & Emergency Controls -->
+        <div class="bento-column">
+            <!-- Bento 1: Live Video Stage -->
+            <section class="bento-tile tile-gradient-cyan">
+                <div class="tile-header-bar">
+                    <div class="tile-caption">
+                        <i data-lucide="video" style="width: 18px; height: 18px; color: #0284c7;"></i>
+                        <span>Live Camera Viewport</span>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="clay-btn clay-btn-sm" id="btnSnapPhoto" title="Save snapshot image">
+                            <i data-lucide="camera" style="width: 13px; height: 13px;"></i>
+                            <span>Snap</span>
+                        </button>
+                        <button class="clay-btn clay-btn-sm" id="btnFullscreen" title="Toggle Fullscreen">
+                            <i data-lucide="maximize" style="width: 13px; height: 13px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="camera-screen-bezel" id="bezelContainer">
+                    <div class="camera-overlay-badge">
+                        <div class="red-dot"></div>
+                        <span>LIVE 640×480</span>
+                    </div>
+                    <canvas id="streamCanvas" width="640" height="480"></canvas>
+                </div>
+
+                <div class="camera-toolbar">
+                    <div class="scene-tags-flow">
+                        <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">In View:</span>
+                        <div id="sceneChipsWrap" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 500;">No objects detected</span>
+                        </div>
+                    </div>
+
+                    <button class="clay-btn" id="btnVoiceToggle">
+                        <i data-lucide="volume-x" id="voiceToggleIcon" style="width: 16px; height: 16px;"></i>
+                        <span id="voiceToggleText">Enable Voice</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Bento 2: Emergency Broadcast Triggers & Alerts -->
+            <section class="bento-tile tile-gradient-amber">
+                <div class="tile-header-bar">
+                    <div class="tile-caption">
+                        <i data-lucide="shield-alert" style="width: 18px; height: 18px; color: #e11d48;"></i>
+                        <span>Emergency Endpoints</span>
+                    </div>
+                    <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">HTTP /call & /sos</span>
+                </div>
+
+                <div class="alert-toast-bar" id="emergencyToast">
+                    <i data-lucide="bell-ring" style="width: 16px; height: 16px;"></i>
+                    <span id="emergencyToastText">EMERGENCY EVENT BROADCASTED</span>
+                </div>
+
+                <div class="emergency-grid">
+                    <button class="clay-btn clay-btn-call" id="btnTriggerCall">
+                        <i data-lucide="phone-call" style="width: 15px; height: 15px;"></i>
+                        <span>Trigger /call</span>
+                    </button>
+                    <button class="clay-btn clay-btn-sos" id="btnTriggerSos">
+                        <i data-lucide="alert-triangle" style="width: 15px; height: 15px;"></i>
+                        <span>Trigger /sos</span>
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- COLUMN 2: Voice Synthesizer & Speech Queue -->
+        <div class="bento-column">
+            <!-- Bento 3: Synthesizer Status & Tuning -->
+            <section class="bento-tile tile-gradient-violet">
+                <div class="tile-header-bar">
+                    <div class="tile-caption">
+                        <i data-lucide="mic" style="width: 18px; height: 18px; color: #7c3aed;"></i>
+                        <span>Voice Synthesizer</span>
+                    </div>
+                    <span id="speakerStateBadge" style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">STANDBY</span>
+                </div>
+
+                <div class="speaker-box-compact">
+                    <div class="clay-waveform" id="clayWaveform">
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                    </div>
+                    <div class="speaker-details">
+                        <span class="speaker-state-label" id="speakerStatusLabel">Status: Idle</span>
+                        <span class="speaker-active-word" id="speakerCurrentWord">Standby</span>
+                    </div>
+                </div>
+
+                <!-- Voice Tuning Controls -->
+                <div class="voice-controls-row">
+                    <div class="control-input-group">
+                        <span class="control-label">Voice Accent</span>
+                        <select id="voiceSelect">
+                            <option value="default">Default Device Voice</option>
+                        </select>
+                    </div>
+
+                    <div class="control-input-group">
+                        <div class="control-label">
+                            <span>Speech Rate</span>
+                            <span id="rateValLabel" style="font-family: 'JetBrains Mono', monospace;">1.0x</span>
+                        </div>
+                        <input type="range" id="speechRateRange" min="0.7" max="1.5" step="0.1" value="1.0">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bento 4: FIFO Speech Queue -->
+            <section class="bento-tile tile-gradient-emerald" style="flex: 1;">
+                <div class="tile-header-bar">
+                    <div class="tile-caption">
+                        <i data-lucide="list-ordered" style="width: 18px; height: 18px; color: #059669;"></i>
+                        <span>Speech Queue (<span id="queueCounter">0</span>)</span>
+                    </div>
+                    <button class="clay-btn clay-btn-sm" id="btnClearQueue">
+                        <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+                        <span>Clear</span>
+                    </button>
+                </div>
+
+                <div class="queue-scroll-area" id="queueItemList">
+                    <div class="empty-hint">Queue is empty</div>
+                </div>
+            </section>
+        </div>
+
+        <!-- COLUMN 3: Telemetry, Analytics, Snapshots & History -->
+        <div class="bento-column">
+            <!-- Bento 5: Real-Time Telemetry & Detection Breakdown -->
+            <section class="bento-tile tile-gradient-cyan">
+                <div class="tile-header-bar">
+                    <div class="tile-caption">
+                        <i data-lucide="bar-chart-2" style="width: 18px; height: 18px; color: #2563eb;"></i>
+                        <span>Session Analytics</span>
+                    </div>
+                    <span style="font-size: 0.7rem; font-weight: 700; color: #4338ca;">YOLO11n</span>
+                </div>
+
+                <div class="telemetry-compact-grid">
+                    <div class="mini-stat-card">
+                        <span class="stat-name">FPS</span>
+                        <span class="stat-value-num" id="fpsDisplay">0.0</span>
+                    </div>
+                    <div class="mini-stat-card">
+                        <span class="stat-name">Rate</span>
+                        <span class="stat-value-num" id="rateDisplay">1.0 /s</span>
+                    </div>
+                    <div class="mini-stat-card">
+                        <span class="stat-name">Detections</span>
+                        <span class="stat-value-num" id="totalDetectionsCounter">0</span>
+                    </div>
+                    <div class="mini-stat-card">
+                        <span class="stat-name">Frames</span>
+                        <span class="stat-value-num" id="totalFramesCounter">0</span>
+                    </div>
+                </div>
+
+                <!-- Frequency Breakdown Bars with Real Data -->
+                <div class="frequency-bars-container" id="freqBarsList">
+                    <div style="font-size: 0.74rem; color: var(--text-subtle); text-align: center; padding: 10px 0; font-style: italic;">
+                        Accumulating detections...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bento 6: Live Snapshot Reel -->
+            <section class="bento-tile tile-gradient-violet">
+                <div class="tile-header-bar">
+                    <div class="tile-caption">
+                        <i data-lucide="image" style="width: 18px; height: 18px; color: #7c3aed;"></i>
+                        <span>Captured Reel (<span id="snapCount">0</span>)</span>
+                    </div>
+                    <span style="font-size: 0.68rem; color: var(--text-subtle);">Click to download</span>
+                </div>
+
+                <div class="snapshot-reel" id="snapshotReel">
+                    <div style="font-size: 0.74rem; color: var(--text-subtle); font-style: italic; padding: 8px;">
+                        No captures yet
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bento 7: Announcement History -->
+            <section class="bento-tile tile-gradient-amber">
+                <div class="tile-header-bar">
+                    <div class="tile-caption">
+                        <i data-lucide="history" style="width: 18px; height: 18px; color: #d97706;"></i>
+                        <span>Announcement Log</span>
+                    </div>
+                </div>
+
+                <div class="activity-scroll-area" id="activityHistoryList">
+                    <div class="activity-entry-row">
+                        <span>--:--:--</span>
+                        <span class="activity-entry-name">Engine online</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // DOM References
+    const canvas = document.getElementById('streamCanvas');
+    const ctx = canvas.getContext('2d');
+    const fpsDisplay = document.getElementById('fpsDisplay');
+    const statusPulse = document.getElementById('statusPulse');
+    const statusText = document.getElementById('statusText');
+    const sceneChipsWrap = document.getElementById('sceneChipsWrap');
+    const uptimeDisplay = document.getElementById('uptimeDisplay');
+    const pingDisplay = document.getElementById('pingDisplay');
+    const trafficDisplay = document.getElementById('trafficDisplay');
+    const totalDetectionsCounter = document.getElementById('totalDetectionsCounter');
+    const totalFramesCounter = document.getElementById('totalFramesCounter');
+    const freqBarsList = document.getElementById('freqBarsList');
+
+    const btnVoiceToggle = document.getElementById('btnVoiceToggle');
+    const voiceToggleIcon = document.getElementById('voiceToggleIcon');
+    const voiceToggleText = document.getElementById('voiceToggleText');
+    const speakerStateBadge = document.getElementById('speakerStateBadge');
+    const clayWaveform = document.getElementById('clayWaveform');
+    const speakerStatusLabel = document.getElementById('speakerStatusLabel');
+    const speakerCurrentWord = document.getElementById('speakerCurrentWord');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const speechRateRange = document.getElementById('speechRateRange');
+    const rateValLabel = document.getElementById('rateValLabel');
+
+    const queueItemList = document.getElementById('queueItemList');
+    const queueCounter = document.getElementById('queueCounter');
+    const btnClearQueue = document.getElementById('btnClearQueue');
+
+    const snapshotReel = document.getElementById('snapshotReel');
+    const snapCount = document.getElementById('snapCount');
+    const btnSnapPhoto = document.getElementById('btnSnapPhoto');
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const bezelContainer = document.getElementById('bezelContainer');
+
+    const activityHistoryList = document.getElementById('activityHistoryList');
+    const btnTriggerCall = document.getElementById('btnTriggerCall');
+    const btnTriggerSos = document.getElementById('btnTriggerSos');
+    const emergencyToast = document.getElementById('emergencyToast');
+    const emergencyToastText = document.getElementById('emergencyToastText');
+
+    // App State
+    let voiceActive = false;
+    let speechQueue = [];
+    let isSpeaking = false;
+    let lastAnnouncedTimes = {};
+    const COOLDOWN_MS = 6000;
+
+    // Real Metrics
+    let totalFrames = 0;
+    let totalDetections = 0;
+    let detectionTally = {};
+    let bytesReceived = 0;
+    const startTime = Date.now();
+
+    // Available speech voices
+    let availableVoices = [];
+    function populateVoiceList() {
+        if (!('speechSynthesis' in window)) return;
+        availableVoices = window.speechSynthesis.getVoices();
+        if (availableVoices.length > 0) {
+            voiceSelect.innerHTML = availableVoices.map((v, i) => 
+                `<option value="${i}">${v.name} (${v.lang})</option>`
+            ).join('');
+        }
+    }
+    populateVoiceList();
+    if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = populateVoiceList;
+    }
+
+    speechRateRange.addEventListener('input', (e) => {
+        rateValLabel.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
+    });
+
+    // Uptime Timer
+    setInterval(() => {
+        const diff = Math.floor((Date.now() - startTime) / 1000);
+        const hrs = String(Math.floor(diff / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+        const secs = String(diff % 60).padStart(2, '0');
+        uptimeDisplay.textContent = `${hrs}:${mins}:${secs}`;
+    }, 1000);
+
+    // Double-buffered stream canvas
+    const offscreenImg = new Image();
+    let currentBlobUrl = null;
+    let frameCounter = 0;
+    let lastFpsTime = performance.now();
+
+    offscreenImg.onload = () => {
+        if (canvas.width !== offscreenImg.naturalWidth && offscreenImg.naturalWidth > 0) {
+            canvas.width = offscreenImg.naturalWidth;
+            canvas.height = offscreenImg.naturalHeight;
+        }
+        ctx.drawImage(offscreenImg, 0, 0);
+
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+            currentBlobUrl = null;
+        }
+
+        totalFrames++;
+        totalFramesCounter.textContent = totalFrames;
+
+        frameCounter++;
+        const now = performance.now();
+        if (now - lastFpsTime >= 1000) {
+            fpsDisplay.textContent = (frameCounter * 1000 / (now - lastFpsTime)).toFixed(1);
+            frameCounter = 0;
+            lastFpsTime = now;
+        }
+    };
+
+    // WebSocket Stream
+    const wsUrl = 'ws://' + window.location.hostname + ':8765';
+    const ws = new WebSocket(wsUrl);
+    ws.binaryType = 'arraybuffer';
+
+    ws.onopen = () => {
+        statusText.textContent = 'ONLINE';
+        statusPulse.classList.remove('offline');
+    };
+
+    ws.onclose = () => {
+        statusText.textContent = 'OFFLINE';
+        statusPulse.classList.add('offline');
+    };
+
+    ws.onmessage = (event) => {
+        if (event.data instanceof ArrayBuffer) {
+            bytesReceived += event.data.byteLength;
+            trafficDisplay.textContent = (bytesReceived / (1024 * 1024)).toFixed(1) + ' MB';
+
+            const blob = new Blob([event.data], { type: 'image/jpeg' });
+            currentBlobUrl = URL.createObjectURL(blob);
+            offscreenImg.src = currentBlobUrl;
+        } else {
+            try {
+                const data = JSON.parse(event.data);
+
+                // Ping calculation
+                if (data.timestamp) {
+                    const latency = Math.max(1, Math.round((Date.now() / 1000 - data.timestamp) * 1000));
+                    pingDisplay.textContent = latency + ' ms';
+                }
+
+                // Emergency events (/call and /sos)
+                if (data.event) {
+                    triggerEmergencyNotification(data.event);
+                }
+
+                // Detected objects
+                if (data.objects) {
+                    handleIncomingDetections(data.objects);
+                }
+            } catch (e) {}
+        }
+    };
+
+    // Detections & Queue Logic
+    function handleIncomingDetections(objects) {
+        if (objects.length === 0) {
+            sceneChipsWrap.innerHTML = '<span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 500;">No objects detected</span>';
+        } else {
+            sceneChipsWrap.innerHTML = objects.map(item => `
+                <div class="clay-tag">
+                    <i data-lucide="tag" style="width: 11px; height: 11px;"></i>
+                    <span>${item}</span>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // Tally analytics
+        objects.forEach(item => {
+            detectionTally[item] = (detectionTally[item] || 0) + 1;
+            totalDetections++;
+        });
+        totalDetectionsCounter.textContent = totalDetections;
+        updateFrequencyBreakdown();
+
+        if (!voiceActive) return;
+
+        const now = Date.now();
+        objects.forEach(item => {
+            const lastTime = lastAnnouncedTimes[item] || 0;
+            if (now - lastTime > COOLDOWN_MS) {
+                if (!speechQueue.includes(item)) {
+                    speechQueue.push(item);
+                    lastAnnouncedTimes[item] = now;
+                    renderQueueUI();
+                    processQueue();
+                }
+            }
+        });
+    }
+
+    // Update real frequency bars
+    function updateFrequencyBreakdown() {
+        const entries = Object.entries(detectionTally).sort((a, b) => b[1] - a[1]).slice(0, 4);
+        if (entries.length === 0) return;
+
+        const maxVal = Math.max(...entries.map(e => e[1]));
+        freqBarsList.innerHTML = entries.map(([name, count]) => {
+            const pct = Math.round((count / maxVal) * 100);
+            return `
+                <div class="freq-row">
+                    <div class="freq-info">
+                        <span>${name}</span>
+                        <span style="font-family: 'JetBrains Mono', monospace; color: #2563eb;">${count}</span>
+                    </div>
+                    <div class="freq-bar-bg">
+                        <div class="freq-bar-fill" style="width: ${pct}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Process FIFO Speech Queue
+    function processQueue() {
+        if (!voiceActive || isSpeaking || speechQueue.length === 0) return;
+
+        isSpeaking = true;
+        const currentItem = speechQueue.shift();
+        renderQueueUI();
+
+        speakerStatusLabel.textContent = 'Announcing:';
+        speakerCurrentWord.textContent = currentItem;
+        speakerStateBadge.textContent = 'SPEAKING';
+        clayWaveform.classList.add('speaking');
+
+        addHistoryRecord(currentItem);
+
+        const utterance = new SpeechSynthesisUtterance(currentItem);
+        utterance.rate = parseFloat(speechRateRange.value) || 1.0;
+        utterance.pitch = 1.0;
+
+        if (availableVoices.length > 0 && voiceSelect.value !== 'default') {
+            utterance.voice = availableVoices[parseInt(voiceSelect.value)] || availableVoices[0];
+        }
+
+        utterance.onend = () => {
+            clayWaveform.classList.remove('speaking');
+            speakerStatusLabel.textContent = 'Next in 1s...';
+            speakerStateBadge.textContent = 'PAUSED';
+
+            setTimeout(() => {
+                isSpeaking = false;
+                speakerStatusLabel.textContent = speechQueue.length > 0 ? 'Announcing:' : 'Status: Idle';
+                speakerCurrentWord.textContent = speechQueue.length > 0 ? speechQueue[0] : 'Standby';
+                speakerStateBadge.textContent = speechQueue.length > 0 ? 'NEXT' : 'READY';
+                processQueue();
+            }, 1000);
+        };
+
+        utterance.onerror = () => {
+            clayWaveform.classList.remove('speaking');
+            isSpeaking = false;
+            processQueue();
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function renderQueueUI() {
+        queueCounter.textContent = speechQueue.length;
+
+        if (speechQueue.length === 0) {
+            queueItemList.innerHTML = '<div class="empty-hint">Queue is empty</div>';
+            return;
+        }
+
+        queueItemList.innerHTML = speechQueue.map((item, index) => `
+            <div class="queue-chip-item">
+                <span>${item}</span>
+                <span class="queue-rank-badge">#${index + 1} NEXT</span>
+            </div>
+        `).join('');
+    }
+
+    function addHistoryRecord(item) {
+        const timeStr = new Date().toLocaleTimeString();
+        const row = document.createElement('div');
+        row.className = 'activity-entry-row';
+        row.innerHTML = `<span>${timeStr}</span><span class="activity-entry-name">${item}</span>`;
+        activityHistoryList.prepend(row);
+
+        if (activityHistoryList.children.length > 25) {
+            activityHistoryList.removeChild(activityHistoryList.lastChild);
+        }
+    }
+
+    // Voice Toggle
+    btnVoiceToggle.addEventListener('click', () => {
+        voiceActive = !voiceActive;
+        if (voiceActive) {
+            btnVoiceToggle.classList.add('voice-on');
+            voiceToggleText.textContent = 'Voice Active';
+            speakerStateBadge.textContent = 'ACTIVE';
+
+            voiceToggleIcon.setAttribute('data-lucide', 'volume-2');
+            lucide.createIcons();
+
+            const wake = new SpeechSynthesisUtterance('');
+            window.speechSynthesis.speak(wake);
+
+            speakerStatusLabel.textContent = 'Listening';
+            speakerCurrentWord.textContent = 'Standby';
+        } else {
+            btnVoiceToggle.classList.remove('voice-on');
+            voiceToggleText.textContent = 'Enable Voice';
+            speakerStateBadge.textContent = 'MUTED';
+
+            voiceToggleIcon.setAttribute('data-lucide', 'volume-x');
+            lucide.createIcons();
+
+            window.speechSynthesis.cancel();
+            isSpeaking = false;
+            clayWaveform.classList.remove('speaking');
+            speakerStatusLabel.textContent = 'Status: Muted';
+            speakerCurrentWord.textContent = 'Standby';
+        }
+    });
+
+    btnClearQueue.addEventListener('click', () => {
+        speechQueue = [];
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        clayWaveform.classList.remove('speaking');
+        speakerStatusLabel.textContent = 'Status: Idle';
+        speakerCurrentWord.textContent = 'Standby';
+        renderQueueUI();
+    });
+
+    // Snapshot Reel Feature
+    let snapshotsCount = 0;
+    btnSnapPhoto.addEventListener('click', () => {
+        if (!canvas.width || !canvas.height) return;
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const timeStr = new Date().toLocaleTimeString();
+
+        if (snapshotsCount === 0) {
+            snapshotReel.innerHTML = '';
+        }
+        snapshotsCount++;
+        snapCount.textContent = snapshotsCount;
+
+        const card = document.createElement('div');
+        card.className = 'snapshot-card';
+        card.innerHTML = `
+            <img src="${dataUrl}" class="snapshot-thumb" />
+            <span class="snapshot-time">${timeStr}</span>
+        `;
+        card.addEventListener('click', () => {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `optiglasswear_snapshot_${Date.now()}.jpg`;
+            a.click();
+        });
+        snapshotReel.prepend(card);
+    });
+
+    // Fullscreen Toggle
+    btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            bezelContainer.requestFullscreen().catch(err => {});
+        } else {
+            document.exitFullscreen();
+        }
+    });
+
+    // Emergency HTTP triggers
+    btnTriggerCall.addEventListener('click', () => {
+        fetch('/call').catch(e => {});
+    });
+
+    btnTriggerSos.addEventListener('click', () => {
+        fetch('/sos').catch(e => {});
+    });
+
+    function triggerEmergencyNotification(eventName) {
+        emergencyToast.style.display = 'flex';
+        emergencyToastText.textContent = `EMERGENCY EVENT: [${eventName}] TRIGGERED!`;
+        
+        if ('speechSynthesis' in window) {
+            const alertUtterance = new SpeechSynthesisUtterance(`Emergency ${eventName} event detected!`);
+            alertUtterance.rate = 1.1;
+            window.speechSynthesis.speak(alertUtterance);
+        }
+
+        setTimeout(() => {
+            emergencyToast.style.display = 'none';
+        }, 5000);
+    }
+</script>
+</body>
+</html>
