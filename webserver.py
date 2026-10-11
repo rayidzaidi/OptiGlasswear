@@ -114,7 +114,7 @@ def detection_worker():
                 cached_boxes = new_boxes
                 cached_objects = new_objects
                 last_detection_time = time.time()
-        except Exception as e:
+        except Exception:
             pass
 
 
@@ -140,8 +140,12 @@ def composite_and_encode(frame):
 
 async def send_to(ws, frame_bytes, json_data):
     try:
-        await ws.send(frame_bytes)
-        await ws.send(json_data)
+        if isinstance(ws, web.WebSocketResponse):
+            await ws.send_bytes(frame_bytes)
+            await ws.send_str(json_data)
+        else:
+            await ws.send(frame_bytes)
+            await ws.send(json_data)
     except Exception:
         connected_clients.discard(ws)
 
@@ -174,12 +178,26 @@ async def send_frames():
             pass
 
 
+# Standalone WebSocket handler (port 8765)
 async def ws_handler(websocket, *args):
     connected_clients.add(websocket)
     try:
         await websocket.wait_closed()
     finally:
         connected_clients.discard(websocket)
+
+
+# aiohttp Integrated WebSocket handler (port 8080 /ws)
+async def aiohttp_ws_handler(request):
+    ws = web.WebSocketResponse(heartbeat=20)
+    await ws.prepare(request)
+    connected_clients.add(ws)
+    try:
+        async for msg in ws:
+            pass
+    finally:
+        connected_clients.discard(ws)
+    return ws
 
 
 # HTTP Endpoints
@@ -189,9 +207,14 @@ async def index_handler(request):
 
 async def broadcast_event(event):
     data = json.dumps({"event": event})
-    await asyncio.gather(
-        *(ws.send(data) for ws in list(connected_clients)), return_exceptions=True
-    )
+    for ws in list(connected_clients):
+        try:
+            if isinstance(ws, web.WebSocketResponse):
+                await ws.send_str(data)
+            else:
+                await ws.send(data)
+        except Exception:
+            connected_clients.discard(ws)
 
 
 async def call_handler(request):
@@ -216,6 +239,35 @@ async def manifest_handler(request):
     return web.FileResponse("manifest.json")
 
 
+async def get_ip_handler(request):
+    return web.json_response({
+        "ip": current_camera_ip,
+        "url": URL
+    })
+
+
+async def set_ip_handler(request):
+    global current_camera_ip, URL
+    try:
+        data = await request.json()
+        new_ip = data.get("ip", "").strip()
+        if new_ip:
+            new_ip = new_ip.replace("http://", "").replace("https://", "").split("/")[0]
+            current_camera_ip = new_ip
+            URL = f"http://{current_camera_ip}/cam-hi.jpg"
+            if data.get("save", True):
+                try:
+                    with open(CAMERA_IP_FILE, "w") as f:
+                        f.write(new_ip)
+                except Exception:
+                    pass
+            print(f"[*] Camera IP dynamically set to: {new_ip} -> {URL}")
+            return web.json_response({"success": True, "ip": new_ip, "url": URL})
+    except Exception as e:
+        return web.json_response({"success": False, "error": str(e)}, status=400)
+    return web.json_response({"success": False, "error": "Invalid IP provided"}, status=400)
+
+
 async def main():
     await websockets.serve(ws_handler, "0.0.0.0", 8765, ping_interval=20, ping_timeout=20)
     print("WebSocket active on ws://0.0.0.0:8765")
@@ -223,17 +275,20 @@ async def main():
     app = web.Application()
     app.add_routes([
         web.get("/", index_handler),
+        web.get("/ws", aiohttp_ws_handler),
         web.get("/logo.png", logo_handler),
         web.get("/favicon.png", favicon_handler),
         web.get("/favicon.ico", favicon_handler),
         web.get("/manifest.json", manifest_handler),
         web.get("/call", call_handler),
-        web.get("/sos", sos_handler)
+        web.get("/sos", sos_handler),
+        web.get("/api/get-ip", get_ip_handler),
+        web.post("/api/set-ip", set_ip_handler)
     ])
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", 8080).start()
-    print("Web server ready on http://0.0.0.0:8080")
+    print("Web server ready on http://0.0.0.0:8080 (and wss/ws on /ws)")
 
     # Start dedicated ingestion and detection background threads
     threading.Thread(target=capture_loop, daemon=True).start()

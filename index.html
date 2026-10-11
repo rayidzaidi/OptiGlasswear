@@ -774,6 +774,91 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Claymorphism IP Configuration Modal */
+        .clay-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .clay-modal-card {
+            background: linear-gradient(145deg, #ffffff, #f1f5f9);
+            border-radius: var(--radius-bento);
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), var(--clay-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.85);
+            width: 100%;
+            max-width: 440px;
+            padding: 24px 26px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: modalIn 0.22s ease-out;
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.92) translateY(10px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .modal-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .clay-input-box {
+            width: 100%;
+            padding: 11px 16px;
+            border-radius: 14px;
+            border: 1.5px solid #cbd5e1;
+            background: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0f172a;
+            outline: none;
+            box-shadow: var(--clay-shadow-inset);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .clay-input-box:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .chk-remember-label {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-body);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .chk-remember-label input {
+            width: 18px;
+            height: 18px;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -811,6 +896,10 @@
                 <div class="live-pulse" id="statusPulse"></div>
                 <span id="statusText">ONLINE</span>
             </div>
+            <button class="clay-btn clay-btn-sm" id="btnOpenIpModal" style="background: var(--grad-primary); color: white; padding: 6px 14px; font-weight: 700; border-radius: var(--radius-pill);" title="Configure Glasses IP">
+                <i data-lucide="sliders-horizontal" style="width: 13px; height: 13px;"></i>
+                <span id="headerIpBadge">Cam: 10.119.226.19</span>
+            </button>
         </div>
     </header>
 
@@ -1027,6 +1116,48 @@
     </main>
 </div>
 
+<!-- Glasses IP Config Modal -->
+<div id="ipConfigModal" class="clay-modal-overlay" style="display: none;">
+    <div class="clay-modal-card">
+        <div class="modal-header-row">
+            <div class="modal-title-wrap">
+                <div class="brand-logo-clay" style="width: 38px; height: 38px; border-radius: 12px;">
+                    <img src="/logo.png" style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;" alt="OPTIGLASSWEAR" />
+                </div>
+                <div>
+                    <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-title); line-height: 1.2;">Glasses IP Setup</h3>
+                    <p style="font-size: 0.76rem; color: var(--text-muted); font-weight: 500;">Direct Wi-Fi / Hotspot link</p>
+                </div>
+            </div>
+            <button id="btnCloseIpModal" class="clay-btn clay-btn-sm" style="padding: 6px 10px; font-size: 1.1rem; line-height: 1;">&times;</button>
+        </div>
+
+        <p style="font-size: 0.82rem; color: var(--text-body); line-height: 1.45;">
+            Enter the IP address of your <b>ESP32-CAM glasses</b>. You can find this in your phone's mobile hotspot connected devices list.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Camera IPv4 Address</label>
+            <input type="text" id="inputGlassesIp" class="clay-input-box" placeholder="e.g. 10.119.226.19" value="10.119.226.19" spellcheck="false" />
+        </div>
+
+        <label class="chk-remember-label">
+            <input type="checkbox" id="chkRememberIp" checked />
+            <span>Remember and persist this IP across app launches</span>
+        </label>
+
+        <div id="ipModalStatus" style="font-size: 0.78rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; display: none;"></div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-top: 4px;">
+            <button id="btnCancelIpModal" class="clay-btn clay-btn-sm">Cancel</button>
+            <button id="btnSaveIpModal" class="clay-btn clay-btn-sm" style="background: var(--grad-primary); color: white; font-weight: 700; padding: 8px 18px;">
+                <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
+                <span>Connect Glasses</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     // Initialize Lucide Icons
     lucide.createIcons();
@@ -1145,51 +1276,161 @@
         }
     };
 
-    // WebSocket Stream
-    const wsUrl = 'ws://' + window.location.hostname + ':8765';
-    const ws = new WebSocket(wsUrl);
-    ws.binaryType = 'arraybuffer';
+    // Modal DOM Elements
+    const btnOpenIpModal = document.getElementById('btnOpenIpModal');
+    const ipConfigModal = document.getElementById('ipConfigModal');
+    const btnCloseIpModal = document.getElementById('btnCloseIpModal');
+    const btnCancelIpModal = document.getElementById('btnCancelIpModal');
+    const btnSaveIpModal = document.getElementById('btnSaveIpModal');
+    const inputGlassesIp = document.getElementById('inputGlassesIp');
+    const chkRememberIp = document.getElementById('chkRememberIp');
+    const ipModalStatus = document.getElementById('ipModalStatus');
+    const headerIpBadge = document.getElementById('headerIpBadge');
 
-    ws.onopen = () => {
-        statusText.textContent = 'ONLINE';
-        statusPulse.classList.remove('offline');
-    };
+    // Load saved or server-active IP
+    fetch('/api/get-ip')
+        .then(r => r.json())
+        .then(data => {
+            if (data.ip) {
+                headerIpBadge.textContent = 'Cam: ' + data.ip;
+                inputGlassesIp.value = data.ip;
+            }
+        })
+        .catch(() => {
+            const saved = localStorage.getItem('optiglass_camera_ip');
+            if (saved) {
+                headerIpBadge.textContent = 'Cam: ' + saved;
+                inputGlassesIp.value = saved;
+            }
+        });
 
-    ws.onclose = () => {
-        statusText.textContent = 'OFFLINE';
-        statusPulse.classList.add('offline');
-    };
+    function openModal() {
+        ipConfigModal.style.display = 'flex';
+        ipModalStatus.style.display = 'none';
+        lucide.createIcons();
+    }
+    function closeModal() {
+        ipConfigModal.style.display = 'none';
+    }
 
-    ws.onmessage = (event) => {
-        if (event.data instanceof ArrayBuffer) {
-            bytesReceived += event.data.byteLength;
-            trafficDisplay.textContent = (bytesReceived / (1024 * 1024)).toFixed(1) + ' MB';
+    btnOpenIpModal.addEventListener('click', openModal);
+    btnCloseIpModal.addEventListener('click', closeModal);
+    btnCancelIpModal.addEventListener('click', closeModal);
+    ipConfigModal.addEventListener('click', (e) => {
+        if (e.target === ipConfigModal) closeModal();
+    });
 
-            const blob = new Blob([event.data], { type: 'image/jpeg' });
-            currentBlobUrl = URL.createObjectURL(blob);
-            offscreenImg.src = currentBlobUrl;
-        } else {
-            try {
-                const data = JSON.parse(event.data);
-
-                // Ping calculation
-                if (data.timestamp) {
-                    const latency = Math.max(1, Math.round((Date.now() / 1000 - data.timestamp) * 1000));
-                    pingDisplay.textContent = latency + ' ms';
-                }
-
-                // Emergency events (/call and /sos)
-                if (data.event) {
-                    triggerEmergencyNotification(data.event);
-                }
-
-                // Detected objects
-                if (data.objects) {
-                    handleIncomingDetections(data.objects);
-                }
-            } catch (e) {}
+    btnSaveIpModal.addEventListener('click', async () => {
+        let ip = inputGlassesIp.value.trim();
+        if (!ip) {
+            ipModalStatus.style.display = 'block';
+            ipModalStatus.style.background = '#fee2e2';
+            ipModalStatus.style.color = '#dc2626';
+            ipModalStatus.textContent = 'Please enter an IP address';
+            return;
         }
-    };
+        ip = ip.replace(/^https?:\/\//, '').split('/')[0];
+        ipModalStatus.style.display = 'block';
+        ipModalStatus.style.background = '#dbeafe';
+        ipModalStatus.style.color = '#1d4ed8';
+        ipModalStatus.textContent = 'Updating glasses connection...';
+
+        try {
+            const res = await fetch('/api/set-ip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ip: ip, save: chkRememberIp.checked })
+            });
+            const d = await res.json();
+            if (d.success) {
+                ipModalStatus.style.background = '#d1fae5';
+                ipModalStatus.style.color = '#047857';
+                ipModalStatus.textContent = 'Glasses connected: ' + d.ip;
+                headerIpBadge.textContent = 'Cam: ' + d.ip;
+                if (chkRememberIp.checked) {
+                    localStorage.setItem('optiglass_camera_ip', d.ip);
+                }
+                setTimeout(closeModal, 900);
+            } else {
+                ipModalStatus.style.background = '#fee2e2';
+                ipModalStatus.style.color = '#dc2626';
+                ipModalStatus.textContent = d.error || 'Failed to set IP';
+            }
+        } catch (err) {
+            ipModalStatus.style.background = '#fee2e2';
+            ipModalStatus.style.color = '#dc2626';
+            ipModalStatus.textContent = 'Server communication error';
+        }
+    });
+
+    // Dual-Protocol Resilient WebSocket (/ws unified primary, :8765 fallback)
+    let ws = null;
+    let wsReconnectTimer = null;
+
+    function getWsUrls() {
+        const isHttps = window.location.protocol === 'https:';
+        const proto = isHttps ? 'wss:' : 'ws:';
+        const primary = `${proto}//${window.location.host}/ws`;
+        const fallback = `${proto}//${window.location.hostname}:8765`;
+        return [primary, fallback];
+    }
+
+    let urlIndex = 0;
+    function connectWs() {
+        if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+        const urls = getWsUrls();
+        const currentUrl = urls[urlIndex % urls.length];
+
+        try {
+            ws = new WebSocket(currentUrl);
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                statusText.textContent = 'ONLINE';
+                statusPulse.classList.remove('offline');
+            };
+
+            ws.onclose = () => {
+                statusText.textContent = 'OFFLINE';
+                statusPulse.classList.add('offline');
+                urlIndex++;
+                wsReconnectTimer = setTimeout(connectWs, 2000);
+            };
+
+            ws.onerror = () => {
+                try { ws.close(); } catch(e) {}
+            };
+
+            ws.onmessage = (event) => {
+                if (event.data instanceof ArrayBuffer) {
+                    bytesReceived += event.data.byteLength;
+                    trafficDisplay.textContent = (bytesReceived / (1024 * 1024)).toFixed(1) + ' MB';
+
+                    const blob = new Blob([event.data], { type: 'image/jpeg' });
+                    currentBlobUrl = URL.createObjectURL(blob);
+                    offscreenImg.src = currentBlobUrl;
+                } else {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.timestamp) {
+                            const latency = Math.max(1, Math.round((Date.now() / 1000 - data.timestamp) * 1000));
+                            pingDisplay.textContent = latency + ' ms';
+                        }
+                        if (data.event) {
+                            triggerEmergencyNotification(data.event);
+                        }
+                        if (data.objects) {
+                            handleIncomingDetections(data.objects);
+                        }
+                    } catch (e) {}
+                }
+            };
+        } catch (err) {
+            urlIndex++;
+            wsReconnectTimer = setTimeout(connectWs, 2000);
+        }
+    }
+    connectWs();
 
     // Detections & Queue Logic
     function handleIncomingDetections(objects) {
