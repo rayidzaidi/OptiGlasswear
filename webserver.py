@@ -28,13 +28,14 @@ current_camera_ip = load_saved_ip()
 URL = f"http://{current_camera_ip}/cam-hi.jpg"
 CONF_THRESHOLD = 0.35
 JPEG_QUALITY = 80
-DETECTION_INTERVAL = 1.0  # Detect exactly once per second for maximum streaming FPS
+DETECTION_INTERVAL = 1.0  # Detect once per second for maximal streaming FPS
 
-print("Loading YOLO AI model...")
+print(f"[*] Starting OPTIGLASSWEAR Engine with Camera IP: {current_camera_ip}", flush=True)
+print("[*] Loading YOLO11 AI model...", flush=True)
 model = YOLO("yolo11n.pt")
 # Pre-warm model
 model(np.zeros((320, 320, 3), dtype=np.uint8), verbose=False)
-print("YOLO model warmed up and ready!")
+print("[*] YOLO11 model warmed up and ready!", flush=True)
 
 connected_clients = set()
 
@@ -42,6 +43,7 @@ connected_clients = set()
 state_lock = threading.Lock()
 latest_frame = None
 latest_frame_id = 0
+last_frame_captured_at = 0
 
 detections_lock = threading.Lock()
 cached_boxes = []      # list of (x1, y1, x2, y2, label)
@@ -49,19 +51,14 @@ cached_objects = []    # list of unique object names
 last_detection_time = 0
 
 
-# ---------- Thread 1: High-Speed Camera Ingestion ----------
+# ---------- Thread 1: Continuous Camera Ingestion ----------
 def capture_loop():
-    global latest_frame, latest_frame_id
+    global latest_frame, latest_frame_id, last_frame_captured_at
     session = requests.Session()
-    adapter = requests.adapters.HTTPAdapter(max_retries=1, pool_connections=2, pool_maxsize=2)
-    session.mount("http://", adapter)
 
     while True:
-        if not connected_clients:
-            time.sleep(0.08)
-            continue
         try:
-            r = session.get(URL, timeout=1.4)
+            r = session.get(URL, timeout=1.8)
             if r.status_code == 200 and len(r.content) > 1000:
                 img = cv2.imdecode(np.frombuffer(r.content, np.uint8), cv2.IMREAD_COLOR)
                 if img is not None:
@@ -70,11 +67,12 @@ def capture_loop():
                     with state_lock:
                         latest_frame = img
                         latest_frame_id += 1
+                        last_frame_captured_at = time.time()
+                time.sleep(0.02)  # 20ms breathing room for ESP32 lwIP stack
+            else:
+                time.sleep(0.5)
         except Exception:
-            # Recreate session on timeout/drop
-            session = requests.Session()
-            session.mount("http://", adapter)
-            time.sleep(0.02)
+            time.sleep(1.2)  # Gentle 1.2s backoff on disconnect/RST so ESP32 socket recovers
 
 
 # ---------- Thread 2: Periodic AI Detection Worker (1 per second) ----------
@@ -84,9 +82,6 @@ def detection_worker():
     while True:
         now = time.time()
         time.sleep(max(0.05, DETECTION_INTERVAL - (time.time() - now)))
-
-        if not connected_clients:
-            continue
 
         with state_lock:
             if latest_frame is None:
@@ -124,9 +119,8 @@ def composite_and_encode(frame):
         boxes_copy = list(cached_boxes)
         objects_copy = list(cached_objects)
 
-    # Super-fast vector rendering (~1ms) so streaming FPS stays maximal
     for x1, y1, x2, y2, label in boxes_copy:
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (16, 185, 129), 2)  # Emerald green border
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (16, 185, 129), 2)
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
         cv2.rectangle(frame, (x1, max(0, y1 - th - 8)), (x1 + tw + 6, y1), (16, 185, 129), -1)
         cv2.putText(frame, label, (x1 + 3, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1, cv2.LINE_AA)
@@ -141,11 +135,13 @@ def composite_and_encode(frame):
 async def send_to(ws, frame_bytes, json_data):
     try:
         if isinstance(ws, web.WebSocketResponse):
-            await ws.send_bytes(frame_bytes)
-            await ws.send_str(json_data)
+            if not ws.closed:
+                await ws.send_bytes(frame_bytes)
+                await ws.send_str(json_data)
         else:
-            await ws.send(frame_bytes)
-            await ws.send(json_data)
+            if not ws.closed:
+                await ws.send(frame_bytes)
+                await ws.send(json_data)
     except Exception:
         connected_clients.discard(ws)
 
@@ -164,7 +160,7 @@ async def send_frames():
             fid = latest_frame_id
 
         if frame is None or fid == last_sent_id:
-            await asyncio.sleep(0.004)
+            await asyncio.sleep(0.005)
             continue
         last_sent_id = fid
 
@@ -181,22 +177,26 @@ async def send_frames():
 # Standalone WebSocket handler (port 8765)
 async def ws_handler(websocket, *args):
     connected_clients.add(websocket)
+    print(f"[*] Standalone client connected. Total: {len(connected_clients)}", flush=True)
     try:
         await websocket.wait_closed()
     finally:
         connected_clients.discard(websocket)
+        print(f"[*] Standalone client disconnected. Total: {len(connected_clients)}", flush=True)
 
 
 # aiohttp Integrated WebSocket handler (port 8080 /ws)
 async def aiohttp_ws_handler(request):
-    ws = web.WebSocketResponse(heartbeat=20)
+    ws = web.WebSocketResponse(heartbeat=15)
     await ws.prepare(request)
     connected_clients.add(ws)
+    print(f"[*] /ws client connected. Total: {len(connected_clients)}", flush=True)
     try:
         async for msg in ws:
             pass
     finally:
         connected_clients.discard(ws)
+        print(f"[*] /ws client disconnected. Total: {len(connected_clients)}", flush=True)
     return ws
 
 
@@ -210,9 +210,11 @@ async def broadcast_event(event):
     for ws in list(connected_clients):
         try:
             if isinstance(ws, web.WebSocketResponse):
-                await ws.send_str(data)
+                if not ws.closed:
+                    await ws.send_str(data)
             else:
-                await ws.send(data)
+                if not ws.closed:
+                    await ws.send(data)
         except Exception:
             connected_clients.discard(ws)
 
@@ -261,16 +263,29 @@ async def set_ip_handler(request):
                         f.write(new_ip)
                 except Exception:
                     pass
-            print(f"[*] Camera IP dynamically set to: {new_ip} -> {URL}")
+            print(f"[*] Camera IP dynamically set to: {new_ip} -> {URL}", flush=True)
             return web.json_response({"success": True, "ip": new_ip, "url": URL})
     except Exception as e:
         return web.json_response({"success": False, "error": str(e)}, status=400)
     return web.json_response({"success": False, "error": "Invalid IP provided"}, status=400)
 
 
+async def status_handler(request):
+    camera_fresh = (time.time() - last_frame_captured_at) < 3.0
+    return web.json_response({
+        "status": "online",
+        "camera_ip": current_camera_ip,
+        "camera_url": URL,
+        "camera_fresh": camera_fresh,
+        "last_frame_id": latest_frame_id,
+        "connected_clients": len(connected_clients),
+        "uptime": time.time()
+    })
+
+
 async def main():
     await websockets.serve(ws_handler, "0.0.0.0", 8765, ping_interval=20, ping_timeout=20)
-    print("WebSocket active on ws://0.0.0.0:8765")
+    print("[*] Standalone WebSocket listening on ws://0.0.0.0:8765", flush=True)
 
     app = web.Application()
     app.add_routes([
@@ -283,12 +298,13 @@ async def main():
         web.get("/call", call_handler),
         web.get("/sos", sos_handler),
         web.get("/api/get-ip", get_ip_handler),
-        web.post("/api/set-ip", set_ip_handler)
+        web.post("/api/set-ip", set_ip_handler),
+        web.get("/api/status", status_handler)
     ])
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", 8080).start()
-    print("Web server ready on http://0.0.0.0:8080 (and wss/ws on /ws)")
+    print("[*] Web server ready on http://0.0.0.0:8080 (and WSS on /ws)", flush=True)
 
     # Start dedicated ingestion and detection background threads
     threading.Thread(target=capture_loop, daemon=True).start()
@@ -300,4 +316,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nServer terminated.")
+        print("\nServer terminated.", flush=True)

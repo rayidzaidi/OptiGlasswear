@@ -1246,24 +1246,29 @@
         uptimeDisplay.textContent = `${hrs}:${mins}:${secs}`;
     }, 1000);
 
-    // Double-buffered stream canvas
-    const offscreenImg = new Image();
-    let currentBlobUrl = null;
+    // Stream Canvas & State
     let frameCounter = 0;
     let lastFpsTime = performance.now();
+    let hasReceivedFirstFrame = false;
 
-    offscreenImg.onload = () => {
-        if (canvas.width !== offscreenImg.naturalWidth && offscreenImg.naturalWidth > 0) {
-            canvas.width = offscreenImg.naturalWidth;
-            canvas.height = offscreenImg.naturalHeight;
-        }
-        ctx.drawImage(offscreenImg, 0, 0);
+    function drawPlaceholder(statusMsg = "Connecting to Glasses Feed...", subMsg = "ESP32-CAM: 10.119.226.19") {
+        if (hasReceivedFirstFrame) return;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 15px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(statusMsg, canvas.width / 2, canvas.height / 2 - 8);
 
-        if (currentBlobUrl) {
-            URL.revokeObjectURL(currentBlobUrl);
-            currentBlobUrl = null;
-        }
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '12px "JetBrains Mono", monospace';
+        ctx.fillText(subMsg, canvas.width / 2, canvas.height / 2 + 18);
+    }
+    drawPlaceholder();
 
+    function onFrameRendered() {
+        hasReceivedFirstFrame = true;
         totalFrames++;
         totalFramesCounter.textContent = totalFrames;
 
@@ -1274,7 +1279,40 @@
             frameCounter = 0;
             lastFpsTime = now;
         }
-    };
+    }
+
+    function renderBlob(blob) {
+        if ('createImageBitmap' in window) {
+            createImageBitmap(blob).then(bitmap => {
+                if (canvas.width !== bitmap.width || canvas.height !== bitmap.height) {
+                    canvas.width = bitmap.width;
+                    canvas.height = bitmap.height;
+                }
+                ctx.drawImage(bitmap, 0, 0);
+                bitmap.close();
+                onFrameRendered();
+            }).catch(() => {
+                fallbackRender(blob);
+            });
+        } else {
+            fallbackRender(blob);
+        }
+    }
+
+    function fallbackRender(blob) {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+            if (canvas.width !== img.naturalWidth || canvas.height !== img.naturalHeight) {
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+            }
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+            onFrameRendered();
+        };
+        img.src = url;
+    }
 
     // Modal DOM Elements
     const btnOpenIpModal = document.getElementById('btnOpenIpModal');
@@ -1294,6 +1332,7 @@
             if (data.ip) {
                 headerIpBadge.textContent = 'Cam: ' + data.ip;
                 inputGlassesIp.value = data.ip;
+                drawPlaceholder("Connecting to Glasses Feed...", "ESP32-CAM: " + data.ip);
             }
         })
         .catch(() => {
@@ -1301,6 +1340,7 @@
             if (saved) {
                 headerIpBadge.textContent = 'Cam: ' + saved;
                 inputGlassesIp.value = saved;
+                drawPlaceholder("Connecting to Glasses Feed...", "ESP32-CAM: " + saved);
             }
         });
 
@@ -1350,6 +1390,8 @@
                 if (chkRememberIp.checked) {
                     localStorage.setItem('optiglass_camera_ip', d.ip);
                 }
+                hasReceivedFirstFrame = false;
+                drawPlaceholder("Glasses Reconnected", "Target: " + d.ip);
                 setTimeout(closeModal, 900);
             } else {
                 ipModalStatus.style.background = '#fee2e2';
@@ -1363,42 +1405,40 @@
         }
     });
 
-    // Dual-Protocol Resilient WebSocket (/ws unified primary, :8765 fallback)
+    // High-Performance Unified WebSocket Stream
     let ws = null;
     let wsReconnectTimer = null;
 
-    function getWsUrls() {
+    function getWsUrl() {
         const isHttps = window.location.protocol === 'https:';
         const proto = isHttps ? 'wss:' : 'ws:';
-        const primary = `${proto}//${window.location.host}/ws`;
-        const fallback = `${proto}//${window.location.hostname}:8765`;
-        return [primary, fallback];
+        // Connect directly to /ws on the current domain (works seamlessly with Cloudflare and local network)
+        return `${proto}//${window.location.host}/ws`;
     }
 
-    let urlIndex = 0;
     function connectWs() {
         if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-        const urls = getWsUrls();
-        const currentUrl = urls[urlIndex % urls.length];
+        const wsUrl = getWsUrl();
+        console.log('OPTIGLASSWEAR connecting to:', wsUrl);
 
         try {
-            ws = new WebSocket(currentUrl);
+            ws = new WebSocket(wsUrl);
             ws.binaryType = 'arraybuffer';
 
             ws.onopen = () => {
                 statusText.textContent = 'ONLINE';
                 statusPulse.classList.remove('offline');
+                drawPlaceholder("Connected! Syncing video stream...", "Standby for frames");
             };
 
             ws.onclose = () => {
                 statusText.textContent = 'OFFLINE';
                 statusPulse.classList.add('offline');
-                urlIndex++;
-                wsReconnectTimer = setTimeout(connectWs, 2000);
+                wsReconnectTimer = setTimeout(connectWs, 1500);
             };
 
-            ws.onerror = () => {
-                try { ws.close(); } catch(e) {}
+            ws.onerror = (e) => {
+                console.warn('WS encounter:', e);
             };
 
             ws.onmessage = (event) => {
@@ -1407,8 +1447,7 @@
                     trafficDisplay.textContent = (bytesReceived / (1024 * 1024)).toFixed(1) + ' MB';
 
                     const blob = new Blob([event.data], { type: 'image/jpeg' });
-                    currentBlobUrl = URL.createObjectURL(blob);
-                    offscreenImg.src = currentBlobUrl;
+                    renderBlob(blob);
                 } else {
                     try {
                         const data = JSON.parse(event.data);
@@ -1426,8 +1465,7 @@
                 }
             };
         } catch (err) {
-            urlIndex++;
-            wsReconnectTimer = setTimeout(connectWs, 2000);
+            wsReconnectTimer = setTimeout(connectWs, 1500);
         }
     }
     connectWs();
